@@ -2,8 +2,8 @@ import * as React from 'react'
 import {alfredTip} from '@kentcdodds/react-workshop-app/test-utils'
 import {render, screen} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-// import App from '../final/03.extra-2'
-import App from '../exercise/03.extra-2'
+import App from '../exercise/02-4'
+// import App from '../exercise/02'
 
 beforeEach(() => {
   jest.spyOn(window, 'fetch')
@@ -16,7 +16,7 @@ afterEach(() => {
 })
 
 test('displays the pokemon', async () => {
-  render(<App />)
+  const {unmount} = render(<App />)
   const input = screen.getByLabelText(/pokemon/i)
   const submit = screen.getByText(/^submit$/i)
 
@@ -57,10 +57,16 @@ test('displays the pokemon', async () => {
   expect(console.error).toHaveBeenCalledTimes(2)
 
   console.error.mockReset()
-  window.fetch.mockClear()
 
-  // use the cached value
-  userEvent.click(screen.getByRole('button', {name: /ditto/i}))
-  expect(window.fetch).not.toHaveBeenCalled()
-  await screen.findByRole('heading', {name: /ditto/i})
+  userEvent.type(input, 'mew')
+  userEvent.click(submit)
+
+  // verify unmounting does not result in an error
+  unmount()
+  // wait for a bit for the mocked request to resolve:
+  await new Promise(r => setTimeout(r, 100))
+  alfredTip(
+    () => expect(console.error).not.toHaveBeenCalled(),
+    'Make sure that when the component is unmounted the component does not attempt to trigger a rerender with `dispatch`',
+  )
 })

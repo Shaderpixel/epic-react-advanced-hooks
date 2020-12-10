@@ -4,22 +4,27 @@
 import * as React from 'react'
 
 // 🐨 wrap this in a React.forwardRef and accept `ref` as the second argument
-function MessagesDisplay({messages}) {
+// const MessagesDisplay = React.forwardRef(function MessagesDisplay({messages}, ref) {
+function MessagesDisplay({messages}, ref) {
   const containerRef = React.useRef()
   React.useLayoutEffect(() => {
     scrollToBottom()
   })
 
   // 💰 you're gonna want this as part of your imperative methods
-  // function scrollToTop() {
-  //   containerRef.current.scrollTop = 0
-  // }
+  function scrollToTop() {
+    containerRef.current.scrollTop = 0
+  }
   function scrollToBottom() {
     containerRef.current.scrollTop = containerRef.current.scrollHeight
   }
 
   // 🐨 call useImperativeHandle here with your ref and a callback function
   // that returns an object with scrollToTop and scrollToBottom
+  // Note: if we use ref.current to set the value to the object we are manipulating the existing value during our render which can lead to some bugs (item potent - if we run this multiple times we can see different values). One way to avoid this is useLayoutEffect which occurs after render. Instead of setting the current property ourselves we use the useImperativeHandle, ask React to update the ref by using a callback to return the object
+  React.useImperativeHandle(ref, ()=>{
+    return {scrollToTop, scrollToBottom}
+  })
 
   return (
     <div ref={containerRef} role="log">
@@ -32,9 +37,11 @@ function MessagesDisplay({messages}) {
     </div>
   )
 }
+// eslint-disable-next-line no-func-assign
+MessagesDisplay = React.forwardRef(MessagesDisplay);
 
 function App() {
-  const messageDisplayRef = React.useRef()
+  const messageDisplayRef = React.useRef() // this is the ref that is set to the MessageDisplay component
   const [messages, setMessages] = React.useState(allMessages.slice(0, 8))
   const addMessage = () =>
     messages.length < allMessages.length

@@ -28,8 +28,9 @@ function asyncReducer(state, action) {
   }
 }
 
+
 // 🐨 move both the useReducer and useEffect hooks to a generic custom hook called useAsync
-function useAsync(asyncCallback, initialState, dependencies) {
+function useAsync(initialState) {
   const [state, dispatch] = React.useReducer(asyncReducer, {
     status: 'idle',
     data: null,
@@ -37,11 +38,7 @@ function useAsync(asyncCallback, initialState, dependencies) {
     ...initialState
   })
 
-  React.useEffect(() => {
-    const promise = asyncCallback();
-    if (!promise) {
-      return
-    }
+  const run = React.useCallback(promise => {
     // then you can dispatch and handle the promise etc...
     dispatch({type: 'pending'})
     promise.then(
@@ -52,29 +49,21 @@ function useAsync(asyncCallback, initialState, dependencies) {
         dispatch({type: 'rejected', error})
       },
     )
-    // 🐨 you'll accept dependencies as an array and pass that here.
-    // 🐨 because of limitations with ESLint, you'll need to ignore
-    // the react-hooks/exhaustive-deps rule. We'll fix this in an extra credit.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, dependencies) // React is throwing a warning because it doesn't know if we included all the dependencies in the variable when it is passed in like so
-
-  return state;
+  },[]) // dispatch and promise are not dependencies. dispatch comes from useReducer so it will not change, will never get a new dispatch function throughout rerendering. Also we are accepting promise as an argument so that won't change either.
+  return {...state, run};
 }
 
 function PokemonInfo({pokemonName}) {
-  // here's how you use it:
-  const state = useAsync(
-    () => {
-      if (!pokemonName) {
-        return
-      }
-      return fetchPokemon(pokemonName)
-    },
-    {status: pokemonName ? 'pending' : 'idle'},
-    [pokemonName],
-  )
+  const {data: pokemon, status, error, run} = useAsync({
+    status: pokemonName ? 'pending' : 'idle',
+  }) // now we can even use run in a click handler
 
-  const {data: pokemon, status, error} = state
+  React.useEffect(() => {
+    if (!pokemonName) {
+      return
+    }
+    run(fetchPokemon(pokemonName))
+  }, [pokemonName, run])
 
   if (status === 'idle' || !pokemonName) {
     return 'Submit a pokemon'
